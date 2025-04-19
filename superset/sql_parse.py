@@ -277,7 +277,6 @@ class ParsedQuery:
                         "You may have an error in your SQL statement. {message}"
                     ).format(message=ex.error.message),
                     level=ErrorLevel.ERROR,
-                    extra=ex.error.extra,
                 )
             ) from ex
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { styled, css } from '@superset-ui/core';
+import { styled, css ,  t, tn} from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { Row, Col, Grid } from 'src/components';
@@ -206,7 +206,7 @@ export function Menu({
       return (
         <MainNav.Item key={label} role="presentation">
           <NavLink role="button" to={url} activeClassName="is-active">
-            {label}
+            {tn(label)}
           </NavLink>
         </MainNav.Item>
       );
@@ -214,7 +214,7 @@ export function Menu({
     if (url) {
       return (
         <MainNav.Item key={label}>
-          <a href={url}>{label}</a>
+          <a href={url}>{ tn(label)}</a>
         </MainNav.Item>
       );
     }
@@ -243,10 +243,10 @@ export function Menu({
                     exact
                     activeClassName="is-active"
                   >
-                    {child.label}
+                    { tn(child.label)}
                   </NavLink>
                 ) : (
-                  <a href={child.url}>{child.label}</a>
+                  <a href={child.url}>{ tn(child.label)}</a>
                 )}
               </MainNav.Item>
             );
@@ -266,7 +266,7 @@ export function Menu({
             title={brand.tooltip}
             arrow={{ pointAtCenter: true }}
           >
-            {isFrontendRoute(window.location.pathname) ? (
+            {/* {isFrontendRoute(window.location.pathname) ? (
               <GenericLink className="navbar-brand" to={brand.path}>
                 <img src={brand.icon} alt={brand.alt} />
               </GenericLink>
@@ -274,13 +274,13 @@ export function Menu({
               <a className="navbar-brand" href={brand.path} tabIndex={-1}>
                 <img src={brand.icon} alt={brand.alt} />
               </a>
-            )}
+            )} */}
           </Tooltip>
-          {brand.text && (
+          {/* {brand.text && (
             <div className="navbar-brand-text">
               <span>{brand.text}</span>
             </div>
-          )}
+          )} */}
           <MainNav
             mode={showMenu}
             data-test="navbar-top"
@@ -295,6 +295,10 @@ export function Menu({
                 isFrontendRoute: isFrontendRoute(item.url),
                 childs: item.childs?.map(c => {
                   if (typeof c === 'string') {
+                    return c;
+                  }
+
+                  if (typeof c === 'object' && c === null) {
                     return c;
                   }
 

@@ -112,3 +112,14 @@ report-celery-beat:
 
 admin-user:
 	superset fab create-admin
+
+
+dev-server:
+	# Activate virtual environment, set config path, generate secret key, and run Superset
+	. venv/bin/activate && \
+	export SUPERSET_CONFIG_PATH=$(PWD)/superset_config.py && \
+	export FLASK_APP=superset && \
+	superset run -p 8089 --with-threads --reload --debugger
+
+dev-frontend:
+	cd superset-frontend; npm run dev-server

@@ -42,6 +42,10 @@ msgid ""
 "                original data, it just changes the way the histogram is "
 "displayed."
 msgstr ""
+"\n"
+"累积选项允许您查看数据如何在不同值上累积。启用后，直方图条形表示每个区间的频率累计总和。\n"
+"这有助于您了解在某个点以下遇到值的可能性。请记住，启用累积不会更改您的原始数据，\n"
+"它只会改变直方图的显示方式。"
 
 msgid ""
 "\n"
@@ -56,6 +60,10 @@ msgid ""
 "                clearer understanding of the proportion of data points "
 "within each bin."
 msgstr ""
+"\n"
+"标准化选项通过将每个区间的计数除以数据点的总计数，将直方图值转换为比例或概率。\n"
+"这个标准化过程确保生成的值总和为1，使得可以相对比较数据的分布，\n"
+"并提供对每个区间内数据点比例的更清晰理解。"
 
 msgid ""
 "\n"
@@ -96,7 +104,7 @@ msgid " expression which needs to adhere to the "
 msgstr " 表达式必须基于 "
 
 msgid " source code of Superset's sandboxed parser"
-msgstr ""
+msgstr "Superset 沙箱解析器的源代码"
 
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
@@ -131,13 +139,13 @@ msgid " to edit or add columns and metrics."
 msgstr "编辑或增加列与指标"
 
 msgid " to mark a column as a time column"
-msgstr ""
+msgstr "将列标记为时间列"
 
 msgid " to open SQL Lab. From there you can save the query as a dataset."
 msgstr "然后打开SQL工具箱。在那里你可以将查询保存为一个数据集。"
 
 msgid " to visualize your data."
-msgstr ""
+msgstr "来可视化您的数据。"
 
 msgid "!= (Is not equal)"
 msgstr "不等于（!=）"
@@ -804,6 +812,19 @@ msgstr "自动匹配格式化"
 
 msgid "Add"
 msgstr "新增"
+
+msgid "List Roles"
+msgstr "角色列表"
+
+msgid "Users"
+msgstr "用户"
+
+msgid "List Groups"
+msgstr "用户组列表"
+
+
+msgid "Permissions"
+msgstr "权限"
 
 msgid "Add Alert"
 msgstr "新增告警"
@@ -8500,13 +8521,13 @@ msgid "Rename tab"
 msgstr "重命名选项卡"
 
 msgid "Render HTML"
-msgstr ""
+msgstr "渲染HTML"
 
 msgid "Render columns in HTML format"
-msgstr ""
+msgstr "以HTML格式渲染列"
 
 msgid "Render data in HTML format if applicable."
-msgstr ""
+msgstr "在适用的情况下以HTML格式渲染数据。"
 
 msgid "Rendering"
 msgstr "渲染"
@@ -12874,7 +12895,7 @@ msgid "When using 'Group By' you are limited to use a single metric"
 msgstr "当使用“Group by”时，只限于使用单个度量。"
 
 msgid "When using other than adaptive formatting, labels may overlap"
-msgstr ""
+msgstr "当使用非自适应格式化时，标签可能会重叠"
 
 #, fuzzy
 msgid "When using this option, default value can’t be set"
@@ -13113,7 +13134,7 @@ msgid "Write a description for your query"
 msgstr "为您的查询写一段描述"
 
 msgid "Write a handlebars template to render the data"
-msgstr ""
+msgstr "编写一个Handlebars模板来渲染数据"
 
 msgid "X AXIS TITLE BOTTOM MARGIN"
 msgstr "X 轴标题下边距"
@@ -13281,13 +13302,13 @@ msgid "You can"
 msgstr "你可以"
 
 msgid "You can add the components in the"
-msgstr ""
+msgstr "您可以在其中添加组件"
 
 msgid "You can add the components in the edit mode."
-msgstr ""
+msgstr "您可以在编辑模式下添加组件。"
 
 msgid "You can also just click on the chart to apply cross-filter."
-msgstr ""
+msgstr "您也可以直接点击图表来应用交叉过滤。"
 
 msgid ""
 "You can choose to display all charts that you have access to or only the "
@@ -13311,6 +13332,7 @@ msgid ""
 "You cannot delete the last temporal filter as it's used for time range "
 "filters in dashboards."
 msgstr ""
+"您不能删除最后一个时间过滤器，因为它被用于看板中的时间范围过滤。"
 
 msgid "You cannot use 45° tick layout along with the time range filter"
 msgstr "不能将45°刻度线布局与时间范围过滤器一起使用"
@@ -13396,14 +13418,16 @@ msgid ""
 "fully undo subsequent actions. You may save your current state to reset "
 "the history."
 msgstr ""
+"您已使用了所有 %(historyLength)s 个撤销槽，将无法完全撤销后续操作。您可以保存当前状态来重置历史记录。"
 
 msgid "You may have an error in your SQL statement. {message}"
-msgstr ""
+msgstr "您的SQL语句中可能有错误。{message}"
 
 msgid ""
 "You must be a dataset owner in order to edit. Please reach out to a "
 "dataset owner to request modifications or edit access."
 msgstr ""
+"您必须是数据集所有者才能进行编辑。请联系数据集所有者请求修改或编辑权限。"
 
 msgid "You must pick a name for the new dashboard"
 msgstr "您必须为新的看板选择一个名称"
@@ -13424,6 +13448,7 @@ msgid ""
 "You've changed datasets. Any controls with data (columns, metrics) that "
 "match this new dataset have been retained."
 msgstr ""
+"您已更改数据集。任何与这个新数据集匹配的数据控件（列、指标）都已被保留。"
 
 #, fuzzy
 msgid "Your chart is not up to date"
@@ -13548,7 +13573,7 @@ msgid "`width` must be greater or equal to 0"
 msgstr "`宽度` 必须大于或等于0"
 
 msgid "add colors to cell bars for +/-"
-msgstr ""
+msgstr "为单元格条形图的正/负值添加颜色"
 
 msgid "aggregate"
 msgstr "合计"
@@ -13919,7 +13944,7 @@ msgid "fetching"
 msgstr "抓取中"
 
 msgid "ffill"
-msgstr ""
+msgstr "前向填充"
 
 #, fuzzy
 msgid "flat"
@@ -13929,10 +13954,10 @@ msgid "for more information on how to structure your URI."
 msgstr "来查询有关如何构造URI的更多信息。"
 
 msgid "function type icon"
-msgstr ""
+msgstr "函数类型图标"
 
 msgid "geohash (square)"
-msgstr ""
+msgstr "地理哈希（方形）"
 
 #, fuzzy
 msgid "heatmap"
@@ -13989,7 +14014,7 @@ msgid "left"
 msgstr "左"
 
 msgid "less than {min} {name}"
-msgstr ""
+msgstr "少于 {min} 个{name}"
 
 #, fuzzy
 msgid "linear"
@@ -14040,7 +14065,7 @@ msgid "month"
 msgstr "月"
 
 msgid "more than {max} {name}"
-msgstr ""
+msgstr "超过 {max} 个{name}"
 
 msgid "must have a value"
 msgstr "必填"
@@ -14058,7 +14083,7 @@ msgid "no SQL validator is configured for %(engine_spec)s"
 msgstr "没有为%(engine_spec)s配置SQL验证器"
 
 msgid "numeric type icon"
-msgstr ""
+msgstr "数值类型图标"
 
 msgid "nvd3"
 msgstr "nvd3"
@@ -14129,7 +14154,7 @@ msgid "permalink state not found"
 msgstr "未找到持久链接状态"
 
 msgid "pixelated (Sharp)"
-msgstr ""
+msgstr "像素化（锐利）"
 
 msgid "pixels"
 msgstr "像素"
@@ -14181,7 +14206,7 @@ msgid "reports"
 msgstr "报告"
 
 msgid "restore zoom"
-msgstr ""
+msgstr "恢复缩放"
 
 msgid "right"
 msgstr "右"
@@ -14351,13 +14376,13 @@ msgid "x"
 msgstr ""
 
 msgid "x: values are normalized within each column"
-msgstr ""
+msgstr "x: 值在每列内标准化"
 
 msgid "y"
 msgstr ""
 
 msgid "y: values are normalized within each row"
-msgstr ""
+msgstr "y: 值在每行内标准化"
 
 msgid "year"
 msgstr "年"
