@@ -1,23 +1,278 @@
-<!--
-Licensed to the Apache Software Foundation (ASF) under one
-or more contributor license agreements.  See the NOTICE file
-distributed with this work for additional information
-regarding copyright ownership.  The ASF licenses this file
-to you under the Apache License, Version 2.0 (the
-"License"); you may not use this file except in compliance
-with the License.  You may obtain a copy of the License at
+# Superset (修改版)
 
-  http://www.apache.org/licenses/LICENSE-2.0
+这是 [Apache Superset](https://github.com/apache/superset) 的修改版本。
 
-Unless required by applicable law or agreed to in writing,
-software distributed under the License is distributed on an
-"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, either express or implied.  See the License for the
-specific language governing permissions and limitations
-under the License.
--->
+## 修改内容
+- 增加默认的 `superset_config.py` 配置
+- 增加中文翻译文件支持
 
-# Superset
+原项目相关链接：
+- 官方仓库：https://github.com/apache/superset
+- 官方文档：https://superset.apache.org
+- 中文文档：https://superset.org.cn
+
+
+----
+
+## docker 启动
+
+```
+docker-compose -f docker-compose-image-tag.yml down -v
+docker-compose -f docker-compose-image-tag.yml up -d
+```
+
+### 注意事项
+
+docker启动时，由于国内网络环境问题，需要设置superset-init的一些网络环境，参考如下 
+
+```
+  superset-init:
+    image: *superset-image
+    container_name: superset_init
+    command: ["/app/docker/docker-init.sh"]
+    env_file:
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
+    depends_on:
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
+    user: "root"
+    volumes: *superset-volumes
+    healthcheck:
+      disable: true
+    environment:
+      SUPERSET_LOAD_EXAMPLES: "no" 
+      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
+      BABEL_DEFAULT_LOCALE: "zh"
+      PIP_TRUSTED_HOST: "pypi.org pypi.python.org files.pythonhosted.org"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      PIP_NO_CACHE_DIR: "1"
+      PIP_INDEX_URL: "https://pypi.tuna.tsinghua.edu.cn/simple"
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+```
+
+## 修改配置信息
+
+修改配置信息有两种方式
+
+1. 直接修改主配置文件 superset/config.py 
+2. 新增一个配置文件 superset_config.py, 并设置环境变量 SUPERSET_CONFIG_PATH 指向该文件，superset_config.py 中的配置会覆盖原有的config.py，可以只设置需要修改的配置项
+
+
+### 启用语言选择
+
+**注意**  如果是直接用`apachesuperset.docker.scarf.sh/apache/superset`的镜像，一般来说，启用语言选择就可以了，但如果是使用本地代码编译的镜像，它默认是没有前端需要的语言包数据的，还需要使用  `npm run build-translation` 来生成语言配置文件，然后再编译
+
+
+superset的默认配置是没有多语言的，需要修改一个配置
+
+```
+# 启用语言选择
+LANGUAGES = {
+    "en": {"flag": "us", "name": "English"},
+    "zh": {"flag": "cn", "name": "Chinese"},
+    "zh_TW": {"flag": "tw", "name": "Traditional Chinese"},
+    # 可以添加更多语言
+}
+
+```
+
+这样就可以在superset后台修改语言
+
+
+### 允许superset 仪表板的markdown组件引用 iframe 标签显示外部网页信息
+
+```
+
+HTML_SANITIZATION_SCHEMA_EXTENSIONS = {
+    "tagNames": ["iframe"],
+    "attributes": {
+        "iframe": ["src", "width", "height", "frameborder", "allowfullscreen", "style", "sandbox", "allow"]
+    }
+}
+
+```
+
+### 允许superset图表联动
+
+```
+  FEATURE_FLAGS = {
+    "DASHBOARD_NATIVE_FILTERS": True,
+    "DASHBOARD_NATIVE_FILTERS_SET": True,
+    "DASHBOARD_CROSS_FILTERS": True, 
+    "HORIZONTAL_FILTER_BAR": True // 是否支持横向过滤器展示
+  }
+```
+
+
+## dashboards等接口访问以及仪表板嵌入第三方系统
+
+整体的逻辑是：获得仪表板的访问权限需要调用接口 `http://api/v1/security/guest_token/` 获取guest_token ，然后配合superset提供的前端npm包`@superset-ui/embedded-sdk`去嵌入仪表盘，但调用guest_token这个接口需要先获得登录的access_token 和 csrf_token ，并**使用cookie保持回话**，因此，关键接口为：
+
+* `/api/v1/security/login`
+* `/api/v1/security/csrf_token/`
+* `/api/v1/security/guest_token/`
+
+然后实际上获取到登录信息后，可以调用任意的接口，例如 
+* `/api/v1/dashboard/` 接口可以获取目前所有的仪表板列表 （可以用于在外部系统获取当前可用的仪表板列表）
+* `/api/v1/dashboard/{id_or_slug}/embedded` 接口可以设置或者获取嵌入的uuid（可以用于在外部系统根据上方的仪表板列表接口，开启仪表板的嵌入功能）
+
+### 详细步骤如下
+
+#### 1. 增加配置
+
+开启guest_token以及设置相关角色
+```
+# Embedded config options
+GUEST_ROLE_NAME = "CRMRead" 
+# GUEST_ROLE_NAME = "Public" # 为什么不使用这个角色，因为guest_token使用时，需要对角色提前设置can read dashboard ， can read charts 之类的角色，然后如果赋予Public角色这两项权限之后，可能是因为Public角色权限会覆盖Admin还是什么原因，导致 `/api/v1/dashboard/` 获取不到数据，因此我额外创建了个角色，然后赋予权限
+GUEST_TOKEN_JWT_SECRET = "EySCCLqcibbpodYX2X7nNa/V1wsMPQ+1DnBMWh3t9JMa7iCpkkpY2y2L"  # noqa: S105
+GUEST_TOKEN_JWT_ALGO = "HS256"  # noqa: S105
+GUEST_TOKEN_HEADER_NAME = "X-GuestToken"  # noqa: S105
+GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
+# Guest token audience for the embedded superset, either string or callable
+GUEST_TOKEN_JWT_AUDIENCE = None
+PUBLIC_ROLE_LIKE_GAMMA = False
+```
+开启嵌入权限
+```
+FEATURE_FLAGS = { "EMBEDDED_SUPERSET": True }
+```
+防止嵌入时的跨域问题（这两个配置是完全开放权限的，这不是一个最好的配置，理论上存在一些安全问题，可以详细查查这里面的配置）
+```
+ENABLE_CORS = True
+TAISMAN_ENABLED = False
+```
+
+
+#### 2. 获取权限，依次调用接口获取guest_token 
+
+1. `/api/v1/security/login`
+2. `/api/v1/security/csrf_token/`
+3. `/api/v1/security/guest_token/` 
+
+对应的参数可以查看接口文档：[superset-api-doc](https://superset.apache.org/docs/api/)
+
+
+### 注意事项（这些都是血泪经验）：
+* 不管是调用`/api/v1/security/guest_token/` 还是调用 `/api/v1/dashboard/` 等接口，除了使用access_token和csrf_token外，都需要使用cookie保持回话，否则会报权限错误
+* 不要给GUEST_ROLE_NAME配置Public角色，应另外添加一个CanRead之类的角色，单独给guest_token使用
+* guest_token的嵌入，除了在接口给此token指定的资源访问权限外，还需要给他对应的角色赋予 can read Dashboard 和 can read chart 的权限，有的图表不属于chart，那么可以根据控制台的错误信息，酌情添加权限，例如 can explore json 
+* `/api/v1/dashboard/{id_or_slug}/embedded` 这接口post时，可以开启某个dashboard的嵌入，此时传入的domain参数，是**不支持*号匹配**的（如果传入星号，无法匹配成功，嵌入的iframe会报403），需要设置具体嵌入仪表板的外部系统的url，例如：http://localhost:8000
+
+
+
+
+## 启动后端开发环境 
+
+先在根目录添加一个开发配置文件`superset_config.py`
+
+```
+# 嵌入相关的配置
+
+FEATURE_FLAGS = {"ALERT_REPORTS": True, "EMBEDDED_SUPERSET": True, "HORIZONTAL_FILTER_BAR": True}
+ENABLE_CORS = True
+TALISMAN_ENABLED = False 
+
+GUEST_ROLE_NAME = "CRMRead"
+GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"  # noqa: S105
+GUEST_TOKEN_JWT_ALGO = "HS256"  # noqa: S105
+GUEST_TOKEN_HEADER_NAME = "X-GuestToken"  # noqa: S105
+GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
+
+# 关于如何在仪表板嵌入 iframe 
+HTML_SANITIZATION_SCHEMA_EXTENSIONS = {
+    "tagNames": ["iframe"],
+    "attributes": {
+        "iframe": ["src", "width", "height", "frameborder", "allowfullscreen", "style", "sandbox", "allow"]
+    }
+}
+
+# 关于在外部系统嵌入管理端
+HTTP_HEADERS= {}
+WTF_CSRF_ENABLED = False
+ENABLE_CORS = True
+CORS_OPTIONS = {
+    'supports_credentials': True,
+    'allow_headers': ['*'],
+    'resources': ['*'],
+    'origins': ['*']
+}
+
+
+APP_NAME = "CRM-BI" # 这个是嵌入系统时，显示的名称
+ENABLE_PROXY_FIX = True # 启用代理修复功能（用于处理反向代理环境中的头）
+
+
+SECRET_KEY = "SNcaNIWrWitz5hxnxolSXCKmO049ba8qUSAws3DQ8Som2KmAe7gxZy+x"
+SUPERSET_SECRET_KEY = "SNcaNIWrWitz5hxnxolSXCKmO049ba8qUSAws3DQ8Som2KmAe7gxZy+x"
+
+```
+
+```
+python -m venv venv  # 创建虚拟环境
+source venv/bin/activate  # 激活虚拟环境
+
+sudo apt-get install build-essential libssl-dev libffi-dev python3-dev python3-pip libsasl2-dev libldap2-dev default-libmysqlclient-dev pkg-config
+
+pip install -r requirements/base.txt  # 安装依赖
+pip install -r requirements/development.txt  # 安装依赖
+pip install -r requirements/translations.txt  # 安装依赖
+
+
+## 设置 Flask 应用
+export FLASK_APP=superset
+```
+
+首次初始化数据库
+
+最简单的，启用 SQLite
+```
+# 初始化数据库
+superset db upgrade
+
+# 创建管理员用户
+superset fab create-admin
+
+# 初始化角色和权限
+superset init
+
+# 加载示例数据（可选）
+superset load-examples
+
+# 在启动superset之前，还需要先编译前端项目
+cd superset-frontend 
+# 用pnpm好像容易成功点
+pnpm i 
+pnpm run build 
+
+# 启动 Superset
+superset run -p 8089 --with-threads --reload --debugger
+
+
+```
+
+可以增加一个快捷启动方式
+
+```
+dev-server:
+	# Activate virtual environment, set config path, generate secret key, and run Superset
+	. venv/bin/activate && \
+	export SUPERSET_CONFIG_PATH=$(PWD)/superset_config.py && \
+	export FLASK_APP=superset && \
+	superset run -p 8089 --with-threads --reload --debugger
+
+dev-frontend:
+	cd superset-frontend; npm run dev-server
+```
+
+---
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/license/apache-2-0)
 [![Latest Release on Github](https://img.shields.io/github/v/release/apache/superset?sort=semver)](https://github.com/apache/superset/releases/latest)
@@ -41,184 +296,3 @@ under the License.
     alt="Superset logo (light)"
   />
 </picture>
-
-A modern, enterprise-ready business intelligence web application.
-
-[**Why Superset?**](#why-superset) |
-[**Supported Databases**](#supported-databases) |
-[**Installation and Configuration**](#installation-and-configuration) |
-[**Release Notes**](https://github.com/apache/superset/blob/master/RELEASING/README.md#release-notes-for-recent-releases) |
-[**Get Involved**](#get-involved) |
-[**Contributor Guide**](#contributor-guide) |
-[**Resources**](#resources) |
-[**Organizations Using Superset**](https://github.com/apache/superset/blob/master/RESOURCES/INTHEWILD.md)
-
-## Why Superset?
-
-Superset is a modern data exploration and data visualization platform. Superset can replace or augment proprietary business intelligence tools for many teams. Superset integrates well with a variety of data sources.
-
-Superset provides:
-
-- A **no-code interface** for building charts quickly
-- A powerful, web-based **SQL Editor** for advanced querying
-- A **lightweight semantic layer** for quickly defining custom dimensions and metrics
-- Out of the box support for **nearly any SQL** database or data engine
-- A wide array of **beautiful visualizations** to showcase your data, ranging from simple bar charts to geospatial visualizations
-- Lightweight, configurable **caching layer** to help ease database load
-- Highly extensible **security roles and authentication** options
-- An **API** for programmatic customization
-- A **cloud-native architecture** designed from the ground up for scale
-
-## Screenshots & Gifs
-
-**Video Overview**
-
-<!-- File hosted here https://github.com/apache/superset-site/raw/lfs/superset-video-4k.mp4 -->
-
-[superset-video-1080p.webm](https://github.com/user-attachments/assets/b37388f7-a971-409c-96a7-90c4e31322e6)
-
-<br/>
-
-**Large Gallery of Visualizations**
-
-<kbd><img title="Gallery" src="https://superset.apache.org/img/screenshots/gallery.jpg"/></kbd><br/>
-
-**Craft Beautiful, Dynamic Dashboards**
-
-<kbd><img title="View Dashboards" src="https://superset.apache.org/img/screenshots/slack_dash.jpg"/></kbd><br/>
-
-**No-Code Chart Builder**
-
-<kbd><img title="Slice & dice your data" src="https://superset.apache.org/img/screenshots/explore.jpg"/></kbd><br/>
-
-**Powerful SQL Editor**
-
-<kbd><img title="SQL Lab" src="https://superset.apache.org/img/screenshots/sql_lab.jpg"/></kbd><br/>
-
-## Supported Databases
-
-Superset can query data from any SQL-speaking datastore or data engine (Presto, Trino, Athena, [and more](https://superset.apache.org/docs/configuration/databases)) that has a Python DB-API driver and a SQLAlchemy dialect.
-
-Here are some of the major database solutions that are supported:
-
-<p align="center">
-  <img src="https://superset.apache.org/img/databases/redshift.png" alt="redshift" border="0" width="200"/>
-  <img src="https://superset.apache.org/img/databases/google-biquery.png" alt="google-biquery" border="0" width="200"/>
-  <img src="https://superset.apache.org/img/databases/snowflake.png" alt="snowflake" border="0" width="200"/>
-  <img src="https://superset.apache.org/img/databases/trino.png" alt="trino" border="0" width="150" />
-  <img src="https://superset.apache.org/img/databases/presto.png" alt="presto" border="0" width="200"/>
-  <img src="https://superset.apache.org/img/databases/databricks.png" alt="databricks" border="0" width="160" />
-  <img src="https://superset.apache.org/img/databases/druid.png" alt="druid" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/firebolt.png" alt="firebolt" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/timescale.png" alt="timescale" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/rockset.png" alt="rockset" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/postgresql.png" alt="postgresql" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/mysql.png" alt="mysql" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/mssql-server.png" alt="mssql-server" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/ibm-db2.svg" alt="db2" border="0" width="220" />
-  <img src="https://superset.apache.org/img/databases/sqlite.png" alt="sqlite" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/sybase.png" alt="sybase" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/mariadb.png" alt="mariadb" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/vertica.png" alt="vertica" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/oracle.png" alt="oracle" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/firebird.png" alt="firebird" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/greenplum.png" alt="greenplum" border="0" width="200"  />
-  <img src="https://superset.apache.org/img/databases/clickhouse.png" alt="clickhouse" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/exasol.png" alt="exasol" border="0" width="160" />
-  <img src="https://superset.apache.org/img/databases/monet-db.png" alt="monet-db" border="0" width="200"  />
-  <img src="https://superset.apache.org/img/databases/apache-kylin.png" alt="apache-kylin" border="0" width="80"/>
-  <img src="https://superset.apache.org/img/databases/hologres.png" alt="hologres" border="0" width="80"/>
-  <img src="https://superset.apache.org/img/databases/netezza.png" alt="netezza" border="0" width="80"/>
-  <img src="https://superset.apache.org/img/databases/pinot.png" alt="pinot" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/teradata.png" alt="teradata" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/yugabyte.png" alt="yugabyte" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/databend.png" alt="databend" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/starrocks.png" alt="starrocks" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/doris.png" alt="doris" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/oceanbase.svg" alt="oceanbase" border="0" width="220" />
-  <img src="https://superset.apache.org/img/databases/sap-hana.png" alt="oceanbase" border="0" width="220" />
-  <img src="https://superset.apache.org/img/databases/denodo.png" alt="denodo" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/ydb.svg" alt="ydb" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/tdengine.png" alt="TDengine" border="0" width="200" />
-</p>
-
-**A more comprehensive list of supported databases** along with the configuration instructions can be found [here](https://superset.apache.org/docs/configuration/databases).
-
-Want to add support for your datastore or data engine? Read more [here](https://superset.apache.org/docs/frequently-asked-questions#does-superset-work-with-insert-database-engine-here) about the technical requirements.
-
-## Installation and Configuration
-
-Try out Superset's [quickstart](https://superset.apache.org/docs/quickstart/) guide or learn about [the options for production deployments](https://superset.apache.org/docs/installation/architecture/).
-
-## Get Involved
-
-- Ask and answer questions on [StackOverflow](https://stackoverflow.com/questions/tagged/apache-superset) using the **apache-superset** tag
-- [Join our community's Slack](http://bit.ly/join-superset-slack)
-  and please read our [Slack Community Guidelines](https://github.com/apache/superset/blob/master/CODE_OF_CONDUCT.md#slack-community-guidelines)
-- [Join our dev@superset.apache.org Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org). To join, simply send an email to [dev-subscribe@superset.apache.org](mailto:dev-subscribe@superset.apache.org)
-- If you want to help troubleshoot GitHub Issues involving the numerous database drivers that Superset supports, please consider adding your name and the databases you have access to on the [Superset Database Familiarity Rolodex](https://docs.google.com/spreadsheets/d/1U1qxiLvOX0kBTUGME1AHHi6Ywel6ECF8xk_Qy-V9R8c/edit#gid=0)
-- Join Superset's Town Hall and [Operational Model](https://preset.io/blog/the-superset-operational-model-wants-you/) recurring meetings. Meeting info is available on the [Superset Community Calendar](https://superset.apache.org/community)
-
-## Contributor Guide
-
-Interested in contributing? Check out our
-[CONTRIBUTING.md](https://github.com/apache/superset/blob/master/CONTRIBUTING.md)
-to find resources around contributing along with a detailed guide on
-how to set up a development environment.
-
-## Resources
-
-- [Superset "In the Wild"](https://github.com/apache/superset/blob/master/RESOURCES/INTHEWILD.md) - open a PR to add your org to the list!
-- [Feature Flags](https://github.com/apache/superset/blob/master/RESOURCES/FEATURE_FLAGS.md) - the status of Superset's Feature Flags.
-- [Standard Roles](https://github.com/apache/superset/blob/master/RESOURCES/STANDARD_ROLES.md) - How RBAC permissions map to roles.
-- [Superset Wiki](https://github.com/apache/superset/wiki) - Tons of additional community resources: best practices, community content and other information.
-- [Superset SIPs](https://github.com/orgs/apache/projects/170) - The status of Superset's SIPs (Superset Improvement Proposals) for both consensus and implementation status.
-
-Understanding the Superset Points of View
-
-- [The Case for Dataset-Centric Visualization](https://preset.io/blog/dataset-centric-visualization/)
-- [Understanding the Superset Semantic Layer](https://preset.io/blog/understanding-superset-semantic-layer/)
-
-- Getting Started with Superset
-  - [Superset in 2 Minutes using Docker Compose](https://superset.apache.org/docs/installation/docker-compose#installing-superset-locally-using-docker-compose)
-  - [Installing Database Drivers](https://superset.apache.org/docs/configuration/databases#installing-database-drivers)
-  - [Building New Database Connectors](https://preset.io/blog/building-database-connector/)
-  - [Create Your First Dashboard](https://superset.apache.org/docs/using-superset/creating-your-first-dashboard/)
-  - [Comprehensive Tutorial for Contributing Code to Apache Superset
-    ](https://preset.io/blog/tutorial-contributing-code-to-apache-superset/)
-- [Resources to master Superset by Preset](https://preset.io/resources/)
-
-- Deploying Superset
-
-  - [Official Docker image](https://hub.docker.com/r/apache/superset)
-  - [Helm Chart](https://github.com/apache/superset/tree/master/helm/superset)
-
-- Recordings of Past [Superset Community Events](https://preset.io/events)
-
-  - [Mixed Time Series Charts](https://preset.io/events/mixed-time-series-visualization-in-superset-workshop/)
-  - [How the Bing Team Customized Superset for the Internal Self-Serve Data & Analytics Platform](https://preset.io/events/how-the-bing-team-heavily-customized-superset-for-their-internal-data/)
-  - [Live Demo: Visualizing MongoDB and Pinot Data using Trino](https://preset.io/events/2021-04-13-visualizing-mongodb-and-pinot-data-using-trino/)
-  - [Introduction to the Superset API](https://preset.io/events/introduction-to-the-superset-api/)
-  - [Building a Database Connector for Superset](https://preset.io/events/2021-02-16-building-a-database-connector-for-superset/)
-
-- Visualizations
-
-  - [Creating Viz Plugins](https://superset.apache.org/docs/contributing/creating-viz-plugins/)
-  - [Managing and Deploying Custom Viz Plugins](https://medium.com/nmc-techblog/apache-superset-manage-custom-viz-plugins-in-production-9fde1a708e55)
-  - [Why Apache Superset is Betting on Apache ECharts](https://preset.io/blog/2021-4-1-why-echarts/)
-
-- [Superset API](https://superset.apache.org/docs/rest-api)
-
-## Repo Activity
-
-<a href="https://next.ossinsight.io/widgets/official/compose-last-28-days-stats?repo_id=39464018" target="_blank" align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://next.ossinsight.io/widgets/official/compose-last-28-days-stats/thumbnail.png?repo_id=39464018&image_size=auto&color_scheme=dark" width="655" height="auto" />
-    <img alt="Performance Stats of apache/superset - Last 28 days" src="https://next.ossinsight.io/widgets/official/compose-last-28-days-stats/thumbnail.png?repo_id=39464018&image_size=auto&color_scheme=light" width="655" height="auto" />
-  </picture>
-</a>
-
-<!-- Made with [OSS Insight](https://ossinsight.io/) -->
-
-<!-- telemetry/analytics pixel: -->
-<img referrerpolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=bc1c90cd-bc04-4e11-8c7b-289fb2839492" />

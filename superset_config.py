@@ -46,7 +46,7 @@ CORS_OPTIONS = {
 }
 
 
-APP_NAME = "安迪光CRM" # 这个是嵌入系统时，显示的名称
+APP_NAME = "CRM-BI" # 这个是嵌入系统时，显示的名称
 ENABLE_PROXY_FIX = True # 启用代理修复功能（用于处理反向代理环境中的头）
 
 
