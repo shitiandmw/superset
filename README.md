@@ -5,6 +5,7 @@
 ## 修改内容
 - 增加默认的 `superset_config.py` 配置
 - 增加中文翻译文件支持
+- 增加自定义的验证器
 
 原项目相关链接：
 - 官方仓库：https://github.com/apache/superset
