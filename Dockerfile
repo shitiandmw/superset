@@ -40,7 +40,14 @@ COPY docker/ /app/docker/
 ARG NPM_BUILD_CMD="build"
 
 # Install system dependencies required for node-gyp
-RUN /app/docker/apt-install.sh build-essential python3 zstd
+RUN /app/docker/apt-install.sh build-essential python3 zstd git openssh-client
+
+# 设置SSH代理
+RUN mkdir -p /root/.ssh && \
+    echo "Host github.com\n\
+    ProxyCommand nc -X connect -x host.docker.internal:7890 %h %p\n\
+    ServerAliveInterval 60" > /root/.ssh/config && \
+    chmod 600 /root/.ssh/config
 
 # Define environment variables for frontend build
 ENV BUILD_CMD=${NPM_BUILD_CMD} \
@@ -61,13 +68,18 @@ RUN mkdir -p /app/superset/static/assets \
 # as the full content of these folders don't change, yielding a decent cache reuse rate.
 # Note that's it's not possible selectively COPY of mount using blobs.
 RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.json \
-    --mount=type=bind,source=./superset-frontend/package-lock.json,target=./package-lock.json \
     --mount=type=cache,target=/root/.cache \
     --mount=type=cache,target=/root/.npm \
     if [ "$DEV_MODE" = "false" ]; then \
-        npm ci; \
+        # 设置HTTP代理
+        export http_proxy=http://host.docker.internal:7890 && \
+        export https_proxy=http://host.docker.internal:7890 && \
+        # 同时配置git使用https而不是ssh
+        git config --global url."https://github.com/".insteadOf "git@github.com:" && \
+        git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" && \
+        npm install; \
     else \
-        echo "Skipping 'npm ci' in dev mode"; \
+        echo "Skipping 'npm install' in dev mode"; \
     fi
 
 # Runs the webpack build process
