@@ -168,7 +168,13 @@ TAISMAN_ENABLED = False
 * `/api/v1/dashboard/{id_or_slug}/embedded` 这接口post时，可以开启某个dashboard的嵌入，此时传入的domain参数，是**不支持*号匹配**的（如果传入星号，无法匹配成功，嵌入的iframe会报403），需要设置具体嵌入仪表板的外部系统的url，例如：http://localhost:8000
 
 
+## 启动前端环境
 
+在后端启动前，需要先编译前端
+
+1. `cd superset-frontend`
+2. `npm i`  # 安装依赖 , 注意，不要使用pnpm，可能会报奇奇怪怪的错误
+3. `pnpm run build` # 编译前端
 
 ## 启动后端开发环境 
 

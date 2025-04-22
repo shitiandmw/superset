@@ -17,14 +17,14 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { styled, css ,  t, tn} from '@superset-ui/core';
+import { styled, css ,   tn} from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { Row, Col, Grid } from 'src/components';
 import { MainNav, MenuMode } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import { NavLink, useLocation } from 'react-router-dom';
-import { GenericLink } from 'src/components/GenericLink/GenericLink';
+// import { GenericLink } from 'src/components/GenericLink/GenericLink';
 import { Icons } from 'src/components/Icons';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { URL_PARAMS } from 'src/constants';
