@@ -64,11 +64,6 @@ RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.j
     --mount=type=cache,target=/root/.cache \
     --mount=type=cache,target=/root/.npm \
     if [ "$DEV_MODE" = "false" ]; then \
-        # 设置代理和禁用SSL验证
-        git config --global http.sslVerify false && \
-        git config --global url."https://github.com/".insteadOf "git@github.com:" && \
-        git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" && \
-        npm config set registry https://registry.npmjs.org/ && \
         npm install; \
     else \
         echo "Skipping 'npm install' in dev mode"; \
