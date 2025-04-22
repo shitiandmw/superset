@@ -42,13 +42,6 @@ ARG NPM_BUILD_CMD="build"
 # Install system dependencies required for node-gyp
 RUN /app/docker/apt-install.sh build-essential python3 zstd git openssh-client
 
-# 设置SSH代理
-RUN mkdir -p /root/.ssh && \
-    echo "Host github.com\n\
-    ProxyCommand nc -X connect -x host.docker.internal:7890 %h %p\n\
-    ServerAliveInterval 60" > /root/.ssh/config && \
-    chmod 600 /root/.ssh/config
-
 # Define environment variables for frontend build
 ENV BUILD_CMD=${NPM_BUILD_CMD} \
     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
@@ -71,12 +64,11 @@ RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.j
     --mount=type=cache,target=/root/.cache \
     --mount=type=cache,target=/root/.npm \
     if [ "$DEV_MODE" = "false" ]; then \
-        # 设置HTTP代理
-        export http_proxy=http://host.docker.internal:7890 && \
-        export https_proxy=http://host.docker.internal:7890 && \
-        # 同时配置git使用https而不是ssh
+        # 设置代理和禁用SSL验证
+        git config --global http.sslVerify false && \
         git config --global url."https://github.com/".insteadOf "git@github.com:" && \
         git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" && \
+        npm config set registry https://registry.npmjs.org/ && \
         npm install; \
     else \
         echo "Skipping 'npm install' in dev mode"; \
