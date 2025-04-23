@@ -40,7 +40,7 @@ COPY docker/ /app/docker/
 ARG NPM_BUILD_CMD="build"
 
 # Install system dependencies required for node-gyp
-RUN /app/docker/apt-install.sh build-essential python3 zstd git openssh-client
+RUN /app/docker/apt-install.sh build-essential python3 zstd
 
 # Define environment variables for frontend build
 ENV BUILD_CMD=${NPM_BUILD_CMD} \
@@ -61,12 +61,13 @@ RUN mkdir -p /app/superset/static/assets \
 # as the full content of these folders don't change, yielding a decent cache reuse rate.
 # Note that's it's not possible selectively COPY of mount using blobs.
 RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.json \
+    --mount=type=bind,source=./superset-frontend/package-lock.json,target=./package-lock.json \
     --mount=type=cache,target=/root/.cache \
     --mount=type=cache,target=/root/.npm \
     if [ "$DEV_MODE" = "false" ]; then \
-        npm install; \
+        npm ci; \
     else \
-        echo "Skipping 'npm install' in dev mode"; \
+        echo "Skipping 'npm ci' in dev mode"; \
     fi
 
 # Runs the webpack build process

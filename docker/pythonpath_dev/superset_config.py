@@ -99,7 +99,6 @@ class CeleryConfig:
 
 CELERY_CONFIG = CeleryConfig
 
-FEATURE_FLAGS = {"ALERT_REPORTS": True}
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 WEBDRIVER_BASEURL = f"http://superset_app{os.environ.get('SUPERSET_APP_ROOT', '/')}/"  # When using docker compose baseurl should be http://superset_nginx{ENV{BASEPATH}}/  # noqa: E501
 # The base URL for the email report hyperlinks.
@@ -136,3 +135,50 @@ try:
     )
 except ImportError:
     logger.info("Using default Docker config...")
+
+
+# 嵌入相关的配置
+
+FEATURE_FLAGS = {
+    "ALERT_REPORTS": True,
+    "EMBEDDED_SUPERSET": True,
+    "HORIZONTAL_FILTER_BAR": True,
+    "DASHBOARD_NATIVE_FILTERS": True,
+    "DASHBOARD_NATIVE_FILTERS_SET": True,
+    "DASHBOARD_CROSS_FILTERS": True, 
+}
+ENABLE_CORS = True
+TALISMAN_ENABLED = False 
+
+GUEST_ROLE_NAME = "CRMRead"
+GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"  # noqa: S105
+GUEST_TOKEN_JWT_ALGO = "HS256"  # noqa: S105
+GUEST_TOKEN_HEADER_NAME = "X-GuestToken"  # noqa: S105
+GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
+
+# 关于如何在仪表板嵌入 iframe 
+HTML_SANITIZATION_SCHEMA_EXTENSIONS = {
+    "tagNames": ["iframe"],
+    "attributes": {
+        "iframe": ["src", "width", "height", "frameborder", "allowfullscreen", "style", "sandbox", "allow"]
+    }
+}
+
+# 关于在外部系统嵌入管理端
+HTTP_HEADERS= {}
+WTF_CSRF_ENABLED = False
+ENABLE_CORS = True
+CORS_OPTIONS = {
+    'supports_credentials': True,
+    'allow_headers': ['*'],
+    'resources': ['*'],
+    'origins': ['*']
+}
+
+
+APP_NAME = "XXXXXX" # 这个是嵌入系统时，显示的名称
+ENABLE_PROXY_FIX = True # 启用代理修复功能（用于处理反向代理环境中的头）
+
+
+# 禁止superset_init容器下载示例数据（国内可能会下载失败）
+# SUPERSET_LOAD_EXAMPLES = False # 这个需要在 docker-compose.yml 中配置

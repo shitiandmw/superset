@@ -29,6 +29,10 @@ x-superset-volumes:
 x-common-build: &common-build
   context: .
   target: dev
+  args:
+    DEBIAN_FRONTEND: "noninteractive"
+    APT_MIRROR: "mirrors.tuna.tsinghua.edu.cn"
+    npm_config_registry: "https://registry.npmjs.org/"
   cache_from:
     - apache/superset-cache:3.10-slim-bookworm
 
@@ -94,8 +98,12 @@ services:
     healthcheck:
       disable: true
     environment:
-      SUPERSET_LOAD_EXAMPLES: "${SUPERSET_LOAD_EXAMPLES:-yes}"
+      SUPERSET_LOAD_EXAMPLES: "no"
       SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
+      PIP_TRUSTED_HOST: "pypi.org pypi.python.org files.pythonhosted.org"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      PIP_NO_CACHE_DIR: "1"
+      PIP_INDEX_URL: "https://pypi.tuna.tsinghua.edu.cn/simple"
 
   superset-worker:
     build:
