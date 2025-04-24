@@ -278,7 +278,7 @@ export const hydrateDashboard =
             conf: common?.conf,
           },
           filterBarOrientation:
-            metadata.filter_bar_orientation || FilterBarOrientation.Vertical,
+            metadata.filter_bar_orientation || FilterBarOrientation.Horizontal,
           crossFiltersEnabled,
         },
         dataMask,
