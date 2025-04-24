@@ -182,3 +182,11 @@ ENABLE_PROXY_FIX = True # 启用代理修复功能（用于处理反向代理环
 
 # 禁止superset_init容器下载示例数据（国内可能会下载失败）
 # SUPERSET_LOAD_EXAMPLES = False # 这个需要在 docker-compose.yml 中配置
+
+
+LANGUAGES = {
+    "en": {"flag": "us", "name": "English"},
+    "zh": {"flag": "cn", "name": "Chinese"},
+    "zh_TW": {"flag": "tw", "name": "Traditional Chinese"},
+    # 可以添加更多语言
+}

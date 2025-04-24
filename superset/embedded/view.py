@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from typing import Callable
+import logging
 
 from flask import abort, current_app, request
 from flask_appbuilder import expose
@@ -27,6 +28,7 @@ from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.views.base import BaseSupersetView, common_bootstrap_payload
 
+logger = logging.getLogger(__name__)
 
 class EmbeddedView(BaseSupersetView):
     """The views for embedded resources to be rendered in an iframe"""
@@ -57,6 +59,9 @@ class EmbeddedView(BaseSupersetView):
         assert embedded is not None
 
         # validate request referrer in allowed domains
+        logger.info(
+            f"Checking referrer for embedded dashboard {uuid}: {request.referrer}"
+        )
         is_referrer_allowed = not embedded.allowed_domains
         for domain in embedded.allowed_domains:
             if same_origin(request.referrer, domain):
