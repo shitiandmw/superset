@@ -20,7 +20,32 @@ import logging
 from flask import abort, current_app, request
 from flask_appbuilder import expose
 from flask_login import AnonymousUserMixin, login_user
-from flask_wtf.csrf import same_origin
+from urllib.parse import urlparse
+
+def same_origin_relaxed(current_uri, compare_uri):
+    """
+    检查两个URI是否来自同一个源，但忽略协议(scheme)的比较
+    只比较主机名(hostname)和端口(port)
+    """
+    if not current_uri or not compare_uri:
+        return False
+
+    try:
+        current = urlparse(current_uri)
+
+        # 如果compare_uri不包含协议，添加一个临时协议以便正确解析
+        if '://' not in compare_uri:
+            compare = urlparse(f'http://{compare_uri}')
+        else:
+            compare = urlparse(compare_uri)
+
+        return (
+            current.hostname == compare.hostname
+            and (current.port == compare.port or not compare.port)
+        )
+    except Exception:
+        # 如果解析失败，尝试简单的字符串匹配
+        return compare_uri in current_uri
 
 from superset import event_logger, is_feature_enabled
 from superset.daos.dashboard import EmbeddedDashboardDAO
@@ -64,8 +89,9 @@ class EmbeddedView(BaseSupersetView):
         )
         is_referrer_allowed = not embedded.allowed_domains
         for domain in embedded.allowed_domains:
-            if same_origin(request.referrer, domain):
+            if same_origin_relaxed(request.referrer, domain):
                 is_referrer_allowed = True
+                logger.info(f"Domain match found using relaxed comparison: {domain}")
                 break
 
         if not is_referrer_allowed:
